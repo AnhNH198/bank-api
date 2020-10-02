@@ -156,7 +156,7 @@ class transfer_money(Resource):
     return generate_return_json(200, "Transfer successfully")
 
 
-class balance(Resource):
+class check_balance(Resource):
     def post(self):
         posted_data = request.get_json()
         username = posted_data["Username"]
@@ -189,17 +189,41 @@ class take_loan(Resource):
             return generate_return_json(304, "Invalid amount of money")
 
         current_own = check_cash_user(username)
-        current_debt = check check_debt_user(username)
+        current_debt = check_debt_user(username)
+        bank_cash = check_cash_user("BANK")
+
+        update_cash_user(username, current_own + money - 1000)
+        update_debt_user(username, current_debt + money)
+        update_cash_user("BANK", bank_cash + 1000)
 
 
 class pay_loan(Resource):
     def post(self):
         posted_data = request.get_json()
+        username = posted_data["Username"]
+        passwd = posted_data["Passwd"]
+        money = posted_data["Amount"]
+
+        ret_json, is_error = verify_credentials(username, passwd)
+        if is_error:
+            return ret_json
+
+        current_own = check_cash_user(username)
+        current_debt = check_debt_user(username)
+
+        if money > current_own:
+            return generate_return_json(305, "You do not have enough money")
+
+        update_cash_user(username, current_own - money)
+        update_debt_user(username, current_debt - money)
 
 
 api.add_resource(register, "/register")
 api.add_resource(add_money, "/add")
-
+api.add_resource(transfer_money, "/transfer")
+api.add_resource(check_balance, "/balance")
+api.add_resource(take_loan, "/borrow")
+api.add_resource(pay_loan, "/payoff")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)
