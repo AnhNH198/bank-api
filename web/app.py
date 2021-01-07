@@ -37,7 +37,7 @@ def verify_passwd(username, passwd):
         return False
 
 
-def verify_credentials(username, paswd):
+def verify_credentials(username, passwd):
     if not user_exists(username):
         return generate_return_json(301, "Invalid username"), True
 
@@ -73,7 +73,7 @@ def update_cash_user(username, amount):
 
 
 def update_debt_user(username, amount):
-    users.update({"Username": usename}), {
+    users.update({"Username": username}), {
         "$set": {
             "Debt": amount
         }
@@ -125,35 +125,36 @@ class add_money(Resource):
 
 
 class transfer_money(Resource):
-    posted_data = request.get_json()
-    username = posted_data["Username"]
-    passwd = posted_data["Passwd"]
-    money = posted_data["Amount"]
-    to = posted_data["To"]
+    def post(self):    
+        posted_data = request.get_json()
+        username = posted_data["Username"]
+        passwd = posted_data["Passwd"]
+        money = posted_data["Amount"]
+        to = posted_data["To"]
 
-    ret_json, is_error = verify_credentials(username, passwd)
+        ret_json, is_error = verify_credentials(username, passwd)
 
-    if is_error:
-        return ret_json
+        if is_error:
+            return ret_json
 
-    if money < 10000:
-        return generate_return_json(304, "Minimum amount is 10000 VND")
+        if money < 10000:
+            return generate_return_json(304, "Minimum amount is 10000 VND")
 
-    if not user_exists(to):
-        return generate_return_json(301, "Invalid receiver")
+        if not user_exists(to):
+            return generate_return_json(301, "Invalid receiver")
 
-    current_own = check_cash_user(username)
-    current_receiver_own = check_cash_user(to)
-    bank_cash = check_cash_user("BANK")
+        current_own = check_cash_user(username)
+        current_receiver_own = check_cash_user(to)
+        bank_cash = check_cash_user("BANK")
 
-    if current_own < money + 1000:
-        return generate_return_json(305, "You do not have enough money")
+        if current_own < money + 1000:
+            return generate_return_json(305, "You do not have enough money")
 
-    update_cash_user(username, current_own - money - 1000)
-    update_cash_user(to, current_receiver_own + money)
-    update_cash_user("BANK", bank_cash + 1000)
+        update_cash_user(username, current_own - money - 1000)
+        update_cash_user(to, current_receiver_own + money)
+        update_cash_user("BANK", bank_cash + 1000)
 
-    return generate_return_json(200, "Transfer successfully")
+        return generate_return_json(200, "Transfer successfully")
 
 
 class check_balance(Resource):
@@ -218,6 +219,11 @@ class pay_loan(Resource):
         update_debt_user(username, current_debt - money)
 
 
+class hello_user(Resource):
+    def get(self):
+        return generate_return_json(200, "XIN CHAO")
+
+api.add_resource(hello_user, "/hello")
 api.add_resource(register, "/register")
 api.add_resource(add_money, "/add")
 api.add_resource(transfer_money, "/transfer")
